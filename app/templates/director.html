@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% block title %}Сводка — PBS{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Панель руководителя</p>
+    <h1>Сводка за период</h1>
+    <p class="lead">В итог входят только достоверные строки. Сомнительная заготовка не даёт процент покрытия сварки. Документация от этих правок не зависит.</p>
+  </div>
+</header>
+
+<div class="toolbar">
+  <form class="period" method="get" action="/">
+    <label>С <input type="date" name="date_from" value="{{ board.date_from }}"></label>
+    <label>по <input type="date" name="date_to" value="{{ board.date_to }}"></label>
+    <button class="button" type="submit">Показать</button>
+  </form>
+  <a class="button" href="/report?date_from={{ board.date_from }}&amp;date_to={{ board.date_to }}">Скачать отчёт</a>
+</div>
+<p class="period-links">
+  <a href="/">Весь период</a>
+  <a href="/?date_from=2026-10-05&amp;date_to=2026-10-06">Контрольный пример: 5–6 октября</a>
+</p>
+
+<section class="cards">
+  <article class="card">
+    <p class="card-kicker">Заготовка</p>
+    <h2>Выполнение плана</h2>
+    <p class="figure">{{ board.prep.ratio | pct }}</p>
+    <p class="fraction">{{ board.prep.fraction }}</p>
+    <p class="card-note">{{ board.prep.note }}. Сумма факта / сумма плана.</p>
+    <a href="#prep-rows">Из каких строк</a>
+  </article>
+  <article class="card">
+    <p class="card-kicker">Сварка</p>
+    <h2>Покрытие потребности</h2>
+    <p class="figure">{{ board.weld.ratio | pct }}</p>
+    <p class="fraction">{{ board.weld.fraction }}</p>
+    <p class="card-note">{{ board.weld.note }}. Факт — это факт заготовки по тем же партиям.</p>
+    <a href="#weld-rows">Из каких строк</a>
+  </article>
+  <article class="card">
+    <p class="card-kicker">Документация</p>
+    <h2>Выполнение плана</h2>
+    <p class="figure">{{ board.docs.ratio | pct }}</p>
+    <p class="fraction">{{ board.docs.fraction }}</p>
+    <p class="card-note">{{ board.docs.note }}. Считается только по своим строкам.</p>
+    <a href="#docs-rows">Из каких строк</a>
+  </article>
+</section>
+
+{% if board.problems %}
+<section class="panel">
+  <h2>Исключено из итога: {{ board.prep.excluded }}</h2>
+  <div class="problems">
+    {% for problem in board.problems %}
+    <article class="problem">
+      <p class="problem-title"><a href="{{ problem.href }}">{{ problem.code }} · {{ problem.batch }}</a></p>
+      <p class="muted">{{ problem.date }}</p>
+      <p>{{ problem.text }}</p>
+    </article>
+    {% endfor %}
+  </div>
+  {% if board.weld.blocked_batches %}
+  <p class="warn-line">Покрытие не считается по партиям: {{ board.weld.blocked_batches | join(", ") }}.</p>
+  {% endif %}
+</section>
+{% elif board.prep_problem_total %}
+<p class="ok-note">В выбранном периоде сомнительных строк нет. В остальных датах на проверке ещё {{ board.prep_problem_total }}.</p>
+{% else %}
+<p class="ok-note">Сомнительных строк заготовки нет.</p>
+{% endif %}
+
+<section class="panel">
+  <h2>Сводка по дням</h2>
+  {% if board.by_date %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Дата</th>
+          <th>План заготовки</th>
+          <th>Факт заготовки</th>
+          <th>Исключено</th>
+          <th>Потребность</th>
+          <th>Факт для покрытия</th>
+          <th>Без покрытия</th>
+          <th>План документов</th>
+          <th>Факт документов</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for day in board.by_date %}
+        <tr>
+          <td>{{ day.label }}</td>
+          <td>{{ day.prep.plan | qty }}</td>
+          <td>{{ day.prep.fact | qty }}</td>
+          <td>{% if day.prep.has %}{{ day.prep.excluded }}{% else %}—{% endif %}</td>
+          <td>{{ day.weld.plan | qty }}</td>
+          <td>{{ day.weld.fact | qty }}</td>
+          <td>{% if day.weld.has %}{{ day.weld.excluded }}{% else %}—{% endif %}</td>
+          <td>{{ day.docs.plan | qty }}</td>
+          <td>{{ day.docs.fact | qty }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th>Итого</th>
+          <td>{{ board.prep.plan | qty }}</td>
+          <td>{{ board.prep.fact | qty }}</td>
+          <td>{{ board.prep.excluded }}</td>
+          <td>{{ board.weld.need | qty }}</td>
+          <td>{{ board.weld.fact | qty }}</td>
+          <td>{{ board.weld.excluded }}</td>
+          <td>{{ board.docs.plan | qty }}</td>
+          <td>{{ board.docs.fact | qty }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">Нет строк за выбранный период.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Заготовка по дням</h2>
+  <p class="muted">На графике только дни с достоверными строками. Сомнительный факт сюда не попадает: иначе одна ошибка сплющит шкалу.</p>
+  <div class="legend"><span><i class="swatch plan"></i>План</span><span><i class="swatch fact"></i>Факт</span></div>
+  {{ board.prep_svg | safe }}
+</section>
+
+<section class="panel">
+  <h2>Сварка по партиям</h2>
+  <p class="muted">«н/д» — покрытие по партии не считается. Ноль на графике — это введённый факт, он в итог входит.</p>
+  <div class="legend"><span><i class="swatch need"></i>Потребность</span><span><i class="swatch fact"></i>Факт заготовки</span></div>
+  {{ board.weld_svg | safe }}
+</section>
+
+<section class="panel">
+  <h2>Документация по дням</h2>
+  <div class="legend"><span><i class="swatch plan"></i>План</span><span><i class="swatch fact"></i>Факт</span></div>
+  {{ board.docs_svg | safe }}
+</section>
+
+<section class="panel" id="prep-rows">
+  <h2>Строки заготовки</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Дата</th><th>Запись</th><th>Партия</th><th>Сотрудник</th><th>План</th><th>Факт</th><th>В итоге</th><th>Почему нет</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in board.prep.rows %}
+        <tr class="{% if not row.reliable %}is-bad{% endif %}">
+          <td>{{ row.date | day }}</td>
+          <td><a href="/prep#row-{{ row.id }}">{{ row.record_id }}</a></td>
+          <td>{{ row.batch_id }}</td>
+          <td>{{ row.employee }}</td>
+          <td>{{ row.plan_qty | qty }}</td>
+          <td>{{ row.fact_qty | qty }}</td>
+          <td>{% if row.reliable %}да{% else %}нет{% endif %}</td>
+          <td>{{ row.issues | join(", ") }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel" id="weld-rows">
+  <h2>Строки сварки</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Дата</th><th>Запись</th><th>Партия</th><th>Потребность</th><th>Заготовка</th><th>Факт</th><th>Статус</th><th>Покрытие</th><th>Пояснение</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in board.weld.rows %}
+        <tr class="{% if not row.reliable %}is-bad{% endif %}">
+          <td>{{ row.date | day }}</td>
+          <td><a href="/weld#row-{{ row.id }}">{{ row.record_id }}</a></td>
+          <td>{{ row.batch_id }}</td>
+          <td>{{ row.need_qty | qty }}</td>
+          <td>{% if row.prep_id %}<a href="/prep#row-{{ row.prep_id }}">{{ row.prep_record }}</a>{% else %}—{% endif %}</td>
+          <td>{{ row.prep_fact | qty }}</td>
+          <td>{{ status_labels[row.status] }}</td>
+          <td>{{ row.coverage | pct }}</td>
+          <td>{{ (row.link_issues or row.issues) | join(", ") }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel" id="docs-rows">
+  <h2>Строки документации</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Дата</th><th>Запись</th><th>Сотрудник</th><th>План</th><th>Факт</th><th>В итоге</th><th>Почему нет</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in board.docs.rows %}
+        <tr class="{% if not row.reliable %}is-bad{% endif %}">
+          <td>{{ row.date | day }}</td>
+          <td><a href="/docs#row-{{ row.id }}">{{ row.record_id }}</a></td>
+          <td>{{ row.employee }}</td>
+          <td>{{ row.plan_docs | qty }}</td>
+          <td>{{ row.fact_docs | qty }}</td>
+          <td>{% if row.reliable %}да{% else %}нет{% endif %}</td>
+          <td>{{ row.issues | join(", ") }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<details class="rules">
+  <summary>Как считаются итоги</summary>
+  <ul>
+    {% for rule in board.rules %}
+    <li>{{ rule }}</li>
+    {% endfor %}
+  </ul>
+</details>
+{% endblock %}

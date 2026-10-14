@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Загрузка — PBS{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Первый шаг</p>
+    <h1>Загрузка файлов</h1>
+    {% if loaded %}
+    <p class="lead">Три Excel уже в системе. Повторно вставлять их не нужно: правки хранятся в базе, исходные файлы можно убрать.</p>
+    {% else %}
+    <p class="lead">Сводка пустая, пока сюда не вставлены три файла. После загрузки программа читает только базу.</p>
+    {% endif %}
+  </div>
+</header>
+
+{% if loaded %}
+<p><a class="button" href="/">Перейти к сводке</a></p>
+<details class="danger-zone">
+  <summary>Удалить все данные</summary>
+  <p>Пропадут все строки: заготовка {{ counts.prep }}, сварка {{ counts.weld }}, документация {{ counts.docs }}, вместе с правками. Файлы Excel на диске не затрагиваются.</p>
+  <form method="post" action="/upload/clear" onsubmit="return confirm('Удалить все записи трёх участков? Это нельзя отменить.')">
+    <label class="check">
+      <input type="checkbox" name="confirm" value="yes" required>
+      Я понимаю, что записи трёх участков будут удалены
+    </label>
+    <label>
+      Для подтверждения введите {{ confirm_phrase }}
+      <input name="phrase" autocomplete="off" required pattern="{{ confirm_phrase }}" placeholder="{{ confirm_phrase }}">
+    </label>
+    <button class="button danger-solid" type="submit">Удалить все данные</button>
+  </form>
+</details>
+{% else %}
+{% if errors %}
+<section class="banner file-errors">
+  <p>Файлы не загружены.</p>
+  {% for error in errors %}
+  <article class="file-error">
+    <p><strong>{{ error.filename }}</strong> в поле «{{ error.field }}».</p>
+    <p>Ожидались поля: {{ error.expected }}.</p>
+    <p>В файле: {{ error.actual }}.</p>
+    {% if error.missing %}<p>Не хватает: {{ error.missing }}.</p>{% endif %}
+    {% if error.extra %}<p>Лишние: {{ error.extra }}.</p>{% endif %}
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
+<form class="upload-form" method="post" action="/upload" enctype="multipart/form-data">
+  <label>
+    Заготовка
+    <input type="file" name="prep" accept=".xlsx" required>
+    <small>01_Заготовка.xlsx</small>
+  </label>
+  <label>
+    Потребность сварки
+    <input type="file" name="weld" accept=".xlsx" required>
+    <small>02_Потребность_сварки.xlsx</small>
+  </label>
+  <label>
+    Документация
+    <input type="file" name="docs" accept=".xlsx" required>
+    <small>03_Документация.xlsx</small>
+  </label>
+  <button class="button" type="submit">Загрузить в систему</button>
+</form>
+{% endif %}
+{% endblock %}

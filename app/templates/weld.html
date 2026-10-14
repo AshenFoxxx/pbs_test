@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Сварка — PBS{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Участок</p>
+    <h1>Потребность сварки</h1>
+    <p class="lead">Здесь меняется потребность. Факт заготовки подставляется по партии и только для чтения: сомнительный факт показан как «недостоверно», а не как процент.</p>
+  </div>
+</header>
+<div class="table-wrap">
+  <table class="edit">
+    <thead>
+      <tr>
+        <th>Запись</th><th>Дата</th><th>Партия</th><th>Потребность</th><th>Заготовка</th><th>Факт</th><th>Покрытие</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr id="row-{{ row.id }}" class="{% if not row.reliable %}is-bad{% endif %}">
+        <td><input form="save-weld-{{ row.id }}" name="record_id" value="{{ row.record_id }}"></td>
+        <td><input form="save-weld-{{ row.id }}" type="date" name="date" value="{{ row.date }}"></td>
+        <td><input form="save-weld-{{ row.id }}" name="batch_id" value="{{ row.batch_id }}"></td>
+        <td><input form="save-weld-{{ row.id }}" name="need_qty" inputmode="decimal" value="{{ row.need_qty | field }}"></td>
+        <td class="status">{% if row.prep_id %}<a href="/prep#row-{{ row.prep_id }}">{{ row.prep_record }}</a>{% else %}—{% endif %}</td>
+        <td class="status">{{ row.prep_fact | qty }}</td>
+        <td class="status">
+          {% if row.reliable %}{{ row.coverage | pct }}{% else %}{{ status_labels[row.status] }}{% endif %}
+          {% if row.link_issues %}<br><span class="muted">{{ row.link_issues | join(", ") }}</span>{% endif %}
+        </td>
+        <td class="actions">
+          <button class="button" form="save-weld-{{ row.id }}" type="submit">Сохранить</button>
+          <button class="button danger" form="delete-weld-{{ row.id }}" type="submit" onclick="return confirm('Удалить {{ row.record_id }}?')">Удалить</button>
+          <form id="save-weld-{{ row.id }}" method="post" action="/weld/{{ row.id }}"></form>
+          <form id="delete-weld-{{ row.id }}" method="post" action="/weld/{{ row.id }}/delete"></form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<details class="add">
+  <summary>Новая запись</summary>
+  <form class="add-form" method="post" action="/weld">
+    <label>Запись <input name="record_id" required></label>
+    <label>Дата <input type="date" name="date" required></label>
+    <label>Партия <input name="batch_id" required></label>
+    <label>Потребность <input name="need_qty" inputmode="decimal"></label>
+    <button class="button" type="submit">Добавить</button>
+  </form>
+</details>
+{% endblock %}

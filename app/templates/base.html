@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Сводка участков{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">PBS</span>
+      <span>
+        <strong>Сводка участков</strong>
+        <small>заготовка, сварка, документы</small>
+      </span>
+    </div>
+    <nav>
+      <a class="{% if active == 'upload' %}is-active{% endif %}" href="/upload">Загрузка</a>
+      <a class="{% if active == 'home' %}is-active{% endif %}" href="/">Сводка</a>
+      <a class="{% if active == 'prep' %}is-active{% endif %}" href="/prep">
+        Заготовка
+        {% if prep_problems %}<span class="badge">{{ prep_problems }}</span>{% endif %}
+      </a>
+      <a class="{% if active == 'weld' %}is-active{% endif %}" href="/weld">Сварка</a>
+      <a class="{% if active == 'docs' %}is-active{% endif %}" href="/docs">Документация</a>
+    </nav>
+    <p class="side-note">Сначала вставьте три Excel на странице «Загрузка». После этого исходные файлы можно убрать: записи остаются в базе.</p>
+  </aside>
+  <main>
+    {% if msg %}
+    <p class="flash">{{ msg }}</p>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

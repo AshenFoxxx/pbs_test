@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Заготовка — PBS{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Участок</p>
+    <h1>Заготовка</h1>
+    <p class="lead">Строка не входит в итог и не даёт процент покрытия сварки, если факт пустой, отрицательный, больше плана в два раза или если номер записи повторяется.</p>
+  </div>
+</header>
+<div class="table-wrap">
+  <table class="edit">
+    <thead>
+      <tr>
+        <th>Запись</th><th>Дата</th><th>Партия</th><th>Сотрудник</th><th>План</th><th>Факт</th><th>Статус</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr id="row-{{ row.id }}" class="{% if not row.reliable %}is-bad{% endif %}">
+        <td><input form="save-prep-{{ row.id }}" name="record_id" value="{{ row.record_id }}"></td>
+        <td><input form="save-prep-{{ row.id }}" type="date" name="date" value="{{ row.date }}"></td>
+        <td><input form="save-prep-{{ row.id }}" name="batch_id" value="{{ row.batch_id }}"></td>
+        <td><input form="save-prep-{{ row.id }}" name="employee" value="{{ row.employee }}"></td>
+        <td><input form="save-prep-{{ row.id }}" name="plan_qty" inputmode="decimal" value="{{ row.plan_qty | field }}"></td>
+        <td><input form="save-prep-{{ row.id }}" name="fact_qty" inputmode="decimal" value="{{ row.fact_qty | field }}"></td>
+        <td class="status">{% if row.reliable %}в итоге{% else %}{{ row.issues | join(", ") }}{% endif %}</td>
+        <td class="actions">
+          <button class="button" form="save-prep-{{ row.id }}" type="submit">Сохранить</button>
+          <button class="button danger" form="delete-prep-{{ row.id }}" type="submit" onclick="return confirm('Удалить {{ row.record_id }}?')">Удалить</button>
+          <form id="save-prep-{{ row.id }}" method="post" action="/prep/{{ row.id }}"></form>
+          <form id="delete-prep-{{ row.id }}" method="post" action="/prep/{{ row.id }}/delete"></form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<details class="add">
+  <summary>Новая запись</summary>
+  <form class="add-form" method="post" action="/prep">
+    <label>Запись <input name="record_id" required></label>
+    <label>Дата <input type="date" name="date" required></label>
+    <label>Партия <input name="batch_id" required></label>
+    <label>Сотрудник <input name="employee" required></label>
+    <label>План <input name="plan_qty" inputmode="decimal"></label>
+    <label>Факт <input name="fact_qty" inputmode="decimal"></label>
+    <button class="button" type="submit">Добавить</button>
+  </form>
+</details>
+{% endblock %}

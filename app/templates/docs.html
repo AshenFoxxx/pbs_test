@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Документация — PBS{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Участок</p>
+    <h1>Документация</h1>
+    <p class="lead">Этот участок не связан с партиями заготовки и сварки. Цифры здесь не меняются, когда правят другие экраны.</p>
+  </div>
+</header>
+<div class="table-wrap">
+  <table class="edit">
+    <thead>
+      <tr>
+        <th>Запись</th><th>Дата</th><th>Сотрудник</th><th>План</th><th>Факт</th><th>Статус</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr id="row-{{ row.id }}" class="{% if not row.reliable %}is-bad{% endif %}">
+        <td><input form="save-docs-{{ row.id }}" name="record_id" value="{{ row.record_id }}"></td>
+        <td><input form="save-docs-{{ row.id }}" type="date" name="date" value="{{ row.date }}"></td>
+        <td><input form="save-docs-{{ row.id }}" name="employee" value="{{ row.employee }}"></td>
+        <td><input form="save-docs-{{ row.id }}" name="plan_docs" inputmode="decimal" value="{{ row.plan_docs | field }}"></td>
+        <td><input form="save-docs-{{ row.id }}" name="fact_docs" inputmode="decimal" value="{{ row.fact_docs | field }}"></td>
+        <td class="status">{% if row.reliable %}в итоге{% else %}{{ row.issues | join(", ") }}{% endif %}</td>
+        <td class="actions">
+          <button class="button" form="save-docs-{{ row.id }}" type="submit">Сохранить</button>
+          <button class="button danger" form="delete-docs-{{ row.id }}" type="submit" onclick="return confirm('Удалить {{ row.record_id }}?')">Удалить</button>
+          <form id="save-docs-{{ row.id }}" method="post" action="/docs/{{ row.id }}"></form>
+          <form id="delete-docs-{{ row.id }}" method="post" action="/docs/{{ row.id }}/delete"></form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<details class="add">
+  <summary>Новая запись</summary>
+  <form class="add-form" method="post" action="/docs">
+    <label>Запись <input name="record_id" required></label>
+    <label>Дата <input type="date" name="date" required></label>
+    <label>Сотрудник <input name="employee" required></label>
+    <label>План <input name="plan_docs" inputmode="decimal"></label>
+    <label>Факт <input name="fact_docs" inputmode="decimal"></label>
+    <button class="button" type="submit">Добавить</button>
+  </form>
+</details>
+{% endblock %}
